@@ -375,7 +375,32 @@ def updateChannelUrlsM3U(channels, template_channels, epg_id_map=None, check_res
 
 
 if __name__ == "__main__":
+    import sys
+    
     try:
+        logging.info("🚀 [初始化] 开始执行直播源更新程序...")
         asyncio.run(async_main())
+        logging.info("🎉 [完成] 直播源更新成功，文件已写入。")
+        
+    except Exception as e:
+        logging.error(f"❌ [严重错误] 主程序运行崩溃: {e}", exc_info=True)
+        
+        # 【降级保底机制】如果异步流程死在半路，强行执行一次不带质量检测的写入
+        logging.warning("⚠️ [降级触发] 尝试使用未检测的数据生成保底文件，防止推送到 GitHub 的文件为空...")
+        try:
+            # 重新抓取基础数据，跳过检测
+            template_file = "demo.txt"
+            epg_id_map = fetch_epg_id_map()
+            channels, template_channels = filter_source_urls(template_file)
+            # 直接调用写入
+            updateChannelUrlsM3U(channels, template_channels, epg_id_map, check_results=None)
+            logging.info("✅ [降级成功] 保底 live.m3u 和 live.txt 已生成。")
+        except Exception as fallback_err:
+            logging.critical(f"💥 [彻底失败] 保底机制也崩溃了: {fallback_err}")
+            sys.exit(1) # 彻底退出，向 GitHub Actions 报错
+            
     finally:
-        quality_checker._shutdown_ffprobe_executor()
+        try:
+            quality_checker._shutdown_ffprobe_executor()
+        except:
+            pass
