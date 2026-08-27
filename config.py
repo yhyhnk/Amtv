@@ -44,7 +44,6 @@ https://raw.githubusercontent.com/alantang1977/iptv_api/main/output/live_ipv4.tx
 https://raw.githubusercontent.com/hll2022-tea/tv_yuan/main/tvbox_live_release
 https://raw.githubusercontent.com/alantang1977/iptv_api/main/output/live_ipv4.txt
 https://raw.githubusercontent.com/kimwang1978/collect-txt/main/others_output.txt
-https://raw.githubusercontent.com/q1017673817/iptvz/62feb02f32ea7a3eb2939a24bb01cd4eebbe4ee3/txt/%E5%B9%BF%E4%B8%9C%E7%94%B5%E4%BF%A1.txt
 https://raw.githubusercontent.com/yewengood/yahu/main/speedtest/gddx_fofa.txt
 ]
 
