@@ -19,33 +19,33 @@ max_lines_per_channel = 8
 # main.py 会依次请求这些地址，提取频道名和播放地址
 # 注：被注释掉的源暂时停用，可取消注释启用
 source_urls = [
- https://raw.githubusercontent.com/suxuang/myIPTV/refs/heads/main/ipv4.m3u
- https://raw.githubusercontent.com/suxuang/myIPTV/refs/heads/main/ipv6.m3u
- https://raw.githubusercontent.com/BurningC4/Chinese-IPTV/master/TV-IPV4.m3u
- https://raw.githubusercontent.com/vamoschuck/TV/main/M3U
- https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u
- https://live.fanmingming.cn/tv/m3u/ipv6.m3u
- https://raw.githubusercontent.com/YueChan/Live/main/IPTV.m3u
- https://raw.githubusercontent.com/BigBigGrandG/IPTV-URL/release/Gather.m3u
- https://raw.githubusercontent.com/yyyr-otz/iptv-api/master/output/user_result.txt
- https://raw.githubusercontent.com/Supprise0901/TVBox_live/main/live.txt
- https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u
- https://raw.githubusercontent.com/hujingguang/ChinaIPTV/main/cnTV_AutoUpdate.m3u8
- https://raw.githubusercontent.com/best-fan/iptv-sources/main/cn_all_status.m3u8
- https://raw.githubusercontent.com/imDazui/Tvlist-awesome-m3u-m3u8/master/m3u/山东移动.m3u
- https://raw.githubusercontent.com/wucaizhong2828/ceshi/main/tv.txt
- https://raw.githubusercontent.com/jinlaoshu/TV/main/live.txt
- https://raw.githubusercontent.com/qy1987/TV1999/main/outputs/ipv4.txt
- https://raw.githubusercontent.com/fuyu33788/FZYI/main/qt2
- https://raw.githubusercontent.com/fuyu33788/FZYI/main/lt
- https://raw.githubusercontent.com/fuyu33788/FZYI/main/yd
- https://raw.githubusercontent.com/zuomy2021/tv/main/iptv.m3u
- https://raw.githubusercontent.com/zuomy2021/tv/main/iptv.txt
- https://raw.githubusercontent.com/alantang1977/iptv_api/main/output/live_ipv4.txt
- https://raw.githubusercontent.com/hll2022-tea/tv_yuan/main/tvbox_live_release
- https://raw.githubusercontent.com/alantang1977/iptv_api/main/output/live_ipv4.txt
- https://raw.githubusercontent.com/kimwang1978/collect-txt/main/others_output.txt
- https://raw.githubusercontent.com/yewengood/yahu/main/speedtest/gddx_fofa.txt
+ "https://raw.githubusercontent.com/suxuang/myIPTV/refs/heads/main/ipv4.m3u"
+ "https://raw.githubusercontent.com/suxuang/myIPTV/refs/heads/main/ipv6.m3u"
+ "https://raw.githubusercontent.com/BurningC4/Chinese-IPTV/master/TV-IPV4.m3u"
+ "https://raw.githubusercontent.com/vamoschuck/TV/main/M3U"
+ "https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u"
+ "https://live.fanmingming.cn/tv/m3u/ipv6.m3u"
+ "https://raw.githubusercontent.com/YueChan/Live/main/IPTV.m3u"
+ "https://raw.githubusercontent.com/BigBigGrandG/IPTV-URL/release/Gather.m3u"
+ "https://raw.githubusercontent.com/yyyr-otz/iptv-api/master/output/user_result.txt"
+ "https://raw.githubusercontent.com/Supprise0901/TVBox_live/main/live.txt"
+ "https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"
+ "https://raw.githubusercontent.com/hujingguang/ChinaIPTV/main/cnTV_AutoUpdate.m3u8"
+ "https://raw.githubusercontent.com/best-fan/iptv-sources/main/cn_all_status.m3u8"
+ "https://raw.githubusercontent.com/imDazui/Tvlist-awesome-m3u-m3u8/master/m3u/山东移动.m3u"
+ "https://raw.githubusercontent.com/wucaizhong2828/ceshi/main/tv.txt"
+ "https://raw.githubusercontent.com/jinlaoshu/TV/main/live.txt"
+ "https://raw.githubusercontent.com/qy1987/TV1999/main/outputs/ipv4.txt"
+ "https://raw.githubusercontent.com/fuyu33788/FZYI/main/qt2"
+ "https://raw.githubusercontent.com/fuyu33788/FZYI/main/lt"
+ "https://raw.githubusercontent.com/fuyu33788/FZYI/main/yd"
+ "https://raw.githubusercontent.com/zuomy2021/tv/main/iptv.m3u"
+ "https://raw.githubusercontent.com/zuomy2021/tv/main/iptv.txt"
+ "https://raw.githubusercontent.com/alantang1977/iptv_api/main/output/live_ipv4.txt"
+ "https://raw.githubusercontent.com/hll2022-tea/tv_yuan/main/tvbox_live_release"
+ "https://raw.githubusercontent.com/alantang1977/iptv_api/main/output/live_ipv4.txt"
+ "https://raw.githubusercontent.com/kimwang1978/collect-txt/main/others_output.txt"
+ "https://raw.githubusercontent.com/yewengood/yahu/main/speedtest/gddx_fofa.txt"
 ]
 
 # ── 酒店源 ────────────────────────────────────────────
