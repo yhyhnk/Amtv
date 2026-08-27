@@ -2,7 +2,7 @@ name: Daily Update
 
 on:
   schedule:
-    - cron: '45 21 * * *'
+    - cron: '0 22 * * *'
   workflow_dispatch:
     branches:
       - main
@@ -30,6 +30,7 @@ jobs:
 
     - name: Install dependencies
       run: |
+        sudo apt-get install -y ffmpeg
         pip install requests aiohttp
 
     - name: Run Python script
@@ -39,7 +40,7 @@ jobs:
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        git add -A
+        git add -f live.m3u live.txt function.log
         if ! git diff --staged --quiet; then
           git commit -m "Auto-update live files"
           git push

@@ -6,6 +6,7 @@ from collections import OrderedDict
 from datetime import datetime
 import config
 import check as quality_checker
+import fetch_hotel
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", handlers=[logging.FileHandler("function.log", "w", encoding="utf-8"), logging.StreamHandler()])
 
@@ -26,6 +27,40 @@ def parse_template(template_file):
                     template_channels[current_category].append(channel_name)
 
     return template_channels
+
+
+def fetch_epg_id_map():
+    """从 config.epg_urls 依次加载 EPG，按频道名合并映射。保底源放末尾。"""
+    import gzip
+    import xml.etree.ElementTree as ET
+    epg_id_map = {}
+    for epg_url in config.epg_urls:
+        try:
+            resp = requests.get(epg_url, timeout=15)
+            resp.raise_for_status()
+            # .gz 链接需要解压，.xml 链接直接用
+            if epg_url.endswith(".gz"):
+                xml_data = gzip.decompress(resp.content)
+            else:
+                xml_data = resp.content
+            tree = ET.fromstring(xml_data)
+            for ch in tree.findall("channel"):
+                dn = ch.find("display-name")
+                if dn is not None and dn.text:
+                    eid = ch.get("id", "").strip()
+                    name = dn.text.strip()
+                    if eid and name:
+                        epg_id_map.setdefault(name, eid)
+            logging.info(f"[EPG映射] 从 {epg_url} 加载成功")
+        except Exception as e:
+            logging.warning(f"[EPG映射] 从 {epg_url} 加载失败，尝试下一个源: {e}")
+    if epg_id_map:
+        logging.info(f"[EPG映射] 共合并加载 {len(epg_id_map)} 个频道 ID")
+    else:
+        logging.warning("[EPG映射] 所有 EPG 源均加载失败，将使用默认数字 ID")
+    return epg_id_map
+
+
 
 
 def fetch_channels(url):
@@ -78,15 +113,26 @@ def fetch_channels(url):
     return channels
 
 
+def _normalize(name: str) -> str:
+    s = name.strip()
+    s = re.sub(r'[（\[(（\[).?[）\]\)]', '', s)
+    s = re.sub(r'(高清版|超清版|频道|卫视|高清|超清|HD|台)$', '', s)
+    while re.search(r'(高清版|超清版|频道|卫视|高清|超清|HD|台)$', s):
+        s = re.sub(r'(高清版|超清版|频道|卫视|高清|超清|HD|台)$', '', s)
+    s = s.replace('-', '').replace(' ', '')
+    return s
+
+
 def match_channels(template_channels, all_channels):
     matched_channels = OrderedDict()
 
     for category, channel_list in template_channels.items():
         matched_channels[category] = OrderedDict()
         for channel_name in channel_list:
+            norm_target = _normalize(channel_name)
             for online_category, online_channel_list in all_channels.items():
                 for online_channel_name, online_channel_url in online_channel_list:
-                    if channel_name == online_channel_name:
+                    if _normalize(online_channel_name) == norm_target:
                         matched_channels[category].setdefault(channel_name, []).append(online_channel_url)
 
     return matched_channels
@@ -111,8 +157,98 @@ def filter_source_urls(template_file):
 
 
 def is_ipv6(url):
-    return re.match(r"^http:\/\/\[[0-9a-fA-F:]+\]", url) is not None
+    """判断是否为 IPv6 地址"""
+    clean_url = url.rstrip("$")
+    return re.match(r"^https?://\[.+\]", clean_url) is not None
 
+
+def _get_source_type(url: str, category: str = "") -> str:
+    """识别 URL 来源类型：hotel（酒店源）或 subscription（订阅源）
+    酒店源的 category 为 matchType（txiptv/zhgxtv/jsmpeg），与订阅源分类名不冲突。"""
+    hotel_cats = {"txiptv", "zhgxtv", "jsmpeg"}
+    if category in hotel_cats:
+        return "hotel"
+    return "subscription"
+
+
+
+
+def _url_sort_key(url: str, check_results: dict, category: str = ""):
+    """
+    排序 key：IP版本优先 > 来源（根据 source_priority） > 质量
+    ip_version_priority="ipv6" 时 IPv6 优先，否则 IPv4 优先
+    source_priority="hotel" 时酒店源优先，否则订阅源优先
+    返回 (ipv6_rank, source_rank, layer_rank, -bitrate, -width)，sorted 升序排列
+    """
+    clean = url.split(chr(36), 1)[0] if chr(36) in url else url
+    # IP 版本排序：优先选择 config 中指定的版本
+    is_v6 = is_ipv6(url)
+    ipv6_first = config.ip_version_priority == "ipv6"
+    ipv6_rank = 0 if (is_v6 and ipv6_first) or (not is_v6 and not ipv6_first) else 1
+    # 来源排序：根据 source_priority 配置
+    source_priority = config.source_priority
+    source_rank = 0 if _get_source_type(url, category) == source_priority else 1
+    # 质量排序
+    layer = "fast"
+    bitrate = 0
+    width = 0
+    speed_kbps = 0  # 新增：下载速度
+    if check_results:
+        for cat_ch in check_results.values():
+            for ch_urls in cat_ch.values():
+                r = ch_urls.get(clean, {})
+                if r:
+                    layer = r.get("layer", "fast")
+                    fp = r.get("ffprobe", {})
+                    if fp:
+                        bitrate = fp.get("bitrate", 0)
+                        width = fp.get("width", 0)
+                    # 新增：获取速度信息
+                    deep = r.get("deep", {})
+                    if deep:
+                        speed_kbps = deep.get("speed_kbps", 0)
+                    break
+    layer_rank = 0 if layer in ("ffprobe", "deep") else 1
+    # 排序：IP 版本 > 来源 > 层级 > 速度 > 码率 > 分辨率
+    return (ipv6_rank, source_rank, layer_rank, -speed_kbps, -bitrate, -width)
+
+def _get_meta_suffix(url: str, check_results: dict) -> str:
+    """从 check_results 提取 ffprobe 元数据和速度信息，生成后缀如 【1920x1080@256kbps 1.7Mbps】"""
+    clean = url.split(chr(36), 1)[0] if chr(36) in url else url
+    if not check_results:
+        return ""
+    for cat_ch in check_results.values():
+        for ch_urls in cat_ch.values():
+            r = ch_urls.get(clean, {})
+            fp = r.get("ffprobe", {})
+            # 获取深度探测的速度信息
+            deep = r.get("deep", {})
+            speed_kbps = deep.get("speed_kbps", 0) if deep else 0
+            
+            if fp and fp.get("status") == "ok":
+                w, h = fp.get("width", 0), fp.get("height", 0)
+                br = fp.get("bitrate", 0)
+                parts = []
+                if w and h:
+                    parts.append(f"{w}x{h}")
+                if br > 0:
+                    parts.append(f"{br//1000}kbps")
+                # 添加速度信息
+                if speed_kbps > 0:
+                    if speed_kbps >= 1000:
+                        parts.append(f"{speed_kbps//1000}Mbps")
+                    else:
+                        parts.append(f"{speed_kbps}kbps")
+                if parts:
+                    # 分辨率和码率用 @ 连接，速度单独放后面
+                    if len(parts) >= 2 and "x" in parts[0]:
+                        # 有分辨率，格式：【1920x1080@256kbps 4Mbps】
+                        res_br = "@".join(parts[:-1])
+                        speed = parts[-1]
+                        return f" 【{res_br} {speed}】"
+                    else:
+                        return " 【" + " ".join(parts) + "】"
+    return ""
 
 def _print_domain_suggestions(fail_domains: dict):
     """打印检测失败的域名建议列表，供用户考虑加入黑名单"""
@@ -134,8 +270,30 @@ def _print_domain_suggestions(fail_domains: dict):
 
 async def async_main():
     """异步主入口：fetch -> check -> write"""
+    epg_id_map = fetch_epg_id_map()
     template_file = "demo.txt"
     channels, template_channels = filter_source_urls(template_file)
+
+    # 酒店源抓取
+    if config.hotel_config.get("enabled", False):
+        logging.info("[酒店源] 开始抓取...")
+        hotel_channels = await fetch_hotel.fetch_all_from_hotel()
+        # 酒店源数据是 {cat: {name: [urls]}}，转成 {cat: [(name, url), ...]} 格式
+        st_flat = {}
+        for cat, ch_dict in hotel_channels.items():
+            st_flat[cat] = []
+            for name, urls in ch_dict.items():
+                for url in urls:
+                    st_flat[cat].append((name, url))
+        # 用 match_channels 做模糊匹配，只保留模板中有的频道
+        st_matched = match_channels(template_channels, st_flat)
+        # 合并到 channels
+        merged = 0
+        for cat, ch_dict in st_matched.items():
+            for name, urls in ch_dict.items():
+                channels.setdefault(cat, {}).setdefault(name, []).extend(urls)
+                merged += len(urls)
+        logging.info(f"[酒店源] 合并完成，共添加 {merged} 个 URL")
 
     if config.enable_quality_check:
         logging.info("[质量检测] 开始...")
@@ -144,11 +302,12 @@ async def async_main():
         _print_domain_suggestions(fail_domains)
         logging.info("[质量检测] 完成")
 
-    updateChannelUrlsM3U(channels, template_channels)
+    updateChannelUrlsM3U(channels, template_channels, epg_id_map, check_results)
 
 
-def updateChannelUrlsM3U(channels, template_channels):
+def updateChannelUrlsM3U(channels, template_channels, epg_id_map=None, check_results=None):
     written_urls = set()
+    epg_id_map = epg_id_map or {}
 
     current_date = datetime.now().strftime("%Y-%m-%d")
     for group in config.announcements:
@@ -168,7 +327,7 @@ def updateChannelUrlsM3U(channels, template_channels):
             for group in config.announcements:
                 f_txt.write(f"{group['channel']},#genre#\n")
                 for announcement in group["entries"]:
-                    f_m3u.write(f"""#EXTINF:-1 tvg-id="1" tvg-name="{announcement['name']}" tvg-logo="{announcement['logo']}" group-title="{group['channel']}",{announcement['name']}\n""")
+                    f_m3u.write(f"""#EXTINF:-1 tvg-id="{announcement['name']}" tvg-name="{announcement['name']}" tvg-logo="{announcement['logo']}" group-title="{group['channel']}",{announcement['name']}\n""")
                     f_m3u.write(f"{announcement['url']}\n")
                     f_txt.write(f"{announcement['name']},{announcement['url']}\n")
 
@@ -177,19 +336,29 @@ def updateChannelUrlsM3U(channels, template_channels):
                 if category in channels:
                     for channel_name in channel_list:
                         if channel_name in channels[category]:
-                            sorted_urls = sorted(channels[category][channel_name], key=lambda url: not is_ipv6(url) if config.ip_version_priority == "ipv6" else is_ipv6(url))
+                            sorted_urls = sorted(
+                                channels[category][channel_name],
+                                key=lambda url: _url_sort_key(url, check_results, category)
+                            )
                             filtered_urls = []
                             for url in sorted_urls:
                                 if url and url not in written_urls and not any(blacklist in url for blacklist in config.url_blacklist):
                                     filtered_urls.append(url)
                                     written_urls.add(url)
 
+                            # 限制每频道最大线路数
+                            if config.max_lines_per_channel > 0 and len(filtered_urls) > config.max_lines_per_channel:
+                                old_count = len(filtered_urls)
+                                filtered_urls = filtered_urls[:config.max_lines_per_channel]
+                                logging.info("[频道] %s 线路从 %d 截断至 %d", channel_name, old_count, config.max_lines_per_channel)
                             total_urls = len(filtered_urls)
                             for index, url in enumerate(filtered_urls, start=1):
                                 if is_ipv6(url):
-                                    url_suffix = f"$LR—IPV6" if total_urls == 1 else f"$LR—IPV6【线路{index}】"
+                                    extra = _get_meta_suffix(url, check_results)
+                                    url_suffix = f"$LR—IPV6{extra}" if total_urls == 1 else f"$LR—IPV6【线路{index}】{extra}"
                                 else:
-                                    url_suffix = f"$LR—IPV4" if total_urls == 1 else f"$LR—IPV4【线路{index}】"
+                                    extra = _get_meta_suffix(url, check_results)
+                                    url_suffix = f"$LR—IPV4{extra}" if total_urls == 1 else f"$LR—IPV4【线路{index}】{extra}"
                                 if "$" in url:
                                     base_url = url.split("$", 1)[0]
                                 else:
@@ -197,7 +366,8 @@ def updateChannelUrlsM3U(channels, template_channels):
 
                                 new_url = f"{base_url}{url_suffix}"
 
-                                f_m3u.write(f"#EXTINF:-1 tvg-id=\"{index}\" tvg-name=\"{channel_name}\" tvg-logo=\"https://gcore.jsdelivr.net/gh/yuanzl77/TVlogo@master/png/{channel_name}.png\" group-title=\"{category}\",{channel_name}\n")
+                                tvg_id = epg_id_map.get(channel_name, channel_name)
+                                f_m3u.write(f"#EXTINF:-1 tvg-id=\"{tvg_id}\" tvg-name=\"{channel_name}\" tvg-logo=\"https://gcore.jsdelivr.net/gh/yuanzl77/TVlogo@master/png/{channel_name}.png\" group-title=\"{category}\",{channel_name}\n")
                                 f_m3u.write(new_url + "\n")
                                 f_txt.write(f"{channel_name},{new_url}\n")
 
@@ -205,4 +375,7 @@ def updateChannelUrlsM3U(channels, template_channels):
 
 
 if __name__ == "__main__":
-    asyncio.run(async_main())
+    try:
+        asyncio.run(async_main())
+    finally:
+        quality_checker._shutdown_ffprobe_executor()
