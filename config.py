@@ -24,7 +24,6 @@ source_urls = [
  "https://raw.githubusercontent.com/BurningC4/Chinese-IPTV/master/TV-IPV4.m3u",
  "https://raw.githubusercontent.com/vamoschuck/TV/main/M3U",
  "https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u",
- "https://live.fanmingming.cn/tv/m3u/ipv6.m3u",
  "https://raw.githubusercontent.com/YueChan/Live/main/IPTV.m3u",
  "https://raw.githubusercontent.com/BigBigGrandG/IPTV-URL/release/Gather.m3u",
  "https://raw.githubusercontent.com/yyyr-otz/iptv-api/master/output/user_result.txt",
