@@ -33,18 +33,12 @@ source_urls = [
  "https://raw.githubusercontent.com/best-fan/iptv-sources/main/cn_all_status.m3u8",
  "https://raw.githubusercontent.com/imDazui/Tvlist-awesome-m3u-m3u8/master/m3u/山东移动.m3u",
  "https://raw.githubusercontent.com/wucaizhong2828/ceshi/main/tv.txt",
- "https://raw.githubusercontent.com/jinlaoshu/TV/main/live.txt",
  "https://raw.githubusercontent.com/qy1987/TV1999/main/outputs/ipv4.txt",
  "https://raw.githubusercontent.com/fuyu33788/FZYI/main/qt2",
  "https://raw.githubusercontent.com/fuyu33788/FZYI/main/lt",
  "https://raw.githubusercontent.com/fuyu33788/FZYI/main/yd",
  "https://raw.githubusercontent.com/zuomy2021/tv/main/iptv.m3u",
- "https://raw.githubusercontent.com/zuomy2021/tv/main/iptv.txt",
- "https://raw.githubusercontent.com/alantang1977/iptv_api/main/output/live_ipv4.txt",
  "https://raw.githubusercontent.com/hll2022-tea/tv_yuan/main/tvbox_live_release",
- "https://raw.githubusercontent.com/alantang1977/iptv_api/main/output/live_ipv4.txt",
- "https://raw.githubusercontent.com/kimwang1978/collect-txt/main/others_output.txt",
- "https://raw.githubusercontent.com/yewengood/yahu/main/speedtest/gddx_fofa.txt",
 ]
 
 # ── 酒店源 ────────────────────────────────────────────
