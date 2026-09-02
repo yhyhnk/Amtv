@@ -58,7 +58,7 @@ hotel_config = {
 # 用途：屏蔽已知失效、广告插播、低质量或不稳定的源
 url_blacklist = [
     "epg.pw/stream/",
-    "45.192.97.170:8880"，
+    "45.192.97.170:8880",
 "hwottcdn.ln.chinamobile.com",
 "live.264788.xyz",
 "m.061899.xyz",
