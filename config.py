@@ -19,6 +19,7 @@ max_lines_per_channel = 8
 # main.py 会依次请求这些地址，提取频道名和播放地址
 # 注：被注释掉的源暂时停用，可取消注释启用
 source_urls = [
+ "https://raw.githubusercontent.com/yhyhnk/zubo/refs/heads/main/itvlist.txt",
  "https://raw.githubusercontent.com/suxuang/myIPTV/refs/heads/main/ipv4.m3u",
  "https://raw.githubusercontent.com/suxuang/myIPTV/refs/heads/main/ipv6.m3u",
  "https://raw.githubusercontent.com/BurningC4/Chinese-IPTV/master/TV-IPV4.m3u",
